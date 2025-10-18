@@ -71,12 +71,6 @@ export const MobileSearch = memo(function MobileSearch() {
 })
 
 const Mobile = () => {
-	const { query, refine } = useSearchBox()
-
-	const { results, status, error } = useInstantSearch({ catchError: true })
-
-	const { searchList, isLoadingSearchList, errorSearchList, defaultSearchList, recentSearchList } = useSearchList()
-
 	return (
 		<Ariakit.DialogProvider>
 			<Ariakit.DialogDisclosure className="-my-0.5 rounded-md bg-[#445ed0] p-3 text-white shadow lg:hidden">
@@ -90,62 +84,87 @@ const Mobile = () => {
 				hideOnInteractOutside
 				portal
 			>
-				<Ariakit.ComboboxProvider
-					setValue={(value) => {
-						startTransition(() => {
-							refine(value)
-						})
-					}}
-				>
-					<span className="relative isolate flex w-full items-center justify-between gap-2">
-						<Ariakit.Combobox
-							placeholder="Search..."
-							className="ml-2 flex-1 rounded-md bg-white px-3 py-1 text-base dark:bg-black"
-						/>
-						<Ariakit.DialogDismiss className="p-2">
-							<Icon name="x" className="h-5 w-5" />
-						</Ariakit.DialogDismiss>
-					</span>
-
-					<Ariakit.ComboboxList className="flex flex-col gap-1" alwaysVisible>
-						{query ? (
-							status === 'loading' ? (
-								<p className="flex items-center justify-center gap-1 p-4">
-									Loading
-									<LoadingDots />
-								</p>
-							) : error ? (
-								<p className="flex items-center justify-center p-4 text-(--error)">{`Error: ${error.message}`}</p>
-							) : !results?.hits?.length ? (
-								<p className="flex items-center justify-center p-4">No results found</p>
-							) : (
-								results.hits.map((route: ISearchItem) => (
-									<SearchItem key={`global-search-${route.name}-${route.route}`} route={route} />
-								))
-							)
-						) : isLoadingSearchList ? (
-							<p className="flex items-center justify-center gap-1 p-4">
-								Loading
-								<LoadingDots />
-							</p>
-						) : errorSearchList ? (
-							<p className="flex items-center justify-center p-4 text-(--error)">{`Error: ${errorSearchList.message}`}</p>
-						) : !searchList?.length ? (
-							<p className="flex items-center justify-center p-4">No results found</p>
-						) : (
-							<>
-								{recentSearchList.map((route: ISearchItem) => (
-									<SearchItem key={`global-search-recent-${route.name}-${route.route}`} route={route} recent />
-								))}
-								{defaultSearchList.map((route: ISearchItem) => (
-									<SearchItem key={`global-search-dl-${route.name}-${route.route}`} route={route} />
-								))}
-							</>
-						)}
-					</Ariakit.ComboboxList>
-				</Ariakit.ComboboxProvider>
+				<MobileDialogContent />
 			</Ariakit.Dialog>
 		</Ariakit.DialogProvider>
+	)
+}
+
+const MobileDialogContent = () => {
+	const { query, refine } = useSearchBox()
+	const { results, status, error } = useInstantSearch({ catchError: true })
+	const { searchList, isLoadingSearchList, errorSearchList, defaultSearchList, recentSearchList } = useSearchList()
+
+	const dialog = Ariakit.useDialogContext()
+
+	return (
+		<Ariakit.ComboboxProvider
+			setValue={(value) => {
+				startTransition(() => {
+					refine(value)
+				})
+			}}
+		>
+			<span className="relative isolate flex w-full items-center justify-between gap-2">
+				<Ariakit.Combobox
+					placeholder="Search..."
+					className="ml-2 flex-1 rounded-md bg-white px-3 py-1 text-base dark:bg-black"
+				/>
+				<Ariakit.DialogDismiss className="p-2">
+					<Icon name="x" className="h-5 w-5" />
+				</Ariakit.DialogDismiss>
+			</span>
+
+			<Ariakit.ComboboxList className="flex flex-col gap-1" alwaysVisible>
+				{query ? (
+					status === 'loading' ? (
+						<p className="flex items-center justify-center gap-1 p-4">
+							Loading
+							<LoadingDots />
+						</p>
+					) : error ? (
+						<p className="flex items-center justify-center p-4 text-(--error)">{`Error: ${error.message}`}</p>
+					) : !results?.hits?.length ? (
+						<p className="flex items-center justify-center p-4">No results found</p>
+					) : (
+						results.hits.map((route: ISearchItem) => (
+							<SearchItem
+								key={`global-search-${route.name}-${route.route}`}
+								route={route}
+								onSelect={() => dialog?.hide()}
+							/>
+						))
+					)
+				) : isLoadingSearchList ? (
+					<p className="flex items-center justify-center gap-1 p-4">
+						Loading
+						<LoadingDots />
+					</p>
+				) : errorSearchList ? (
+					<p className="flex items-center justify-center p-4 text-(--error)">{`Error: ${errorSearchList.message}`}</p>
+				) : !searchList?.length ? (
+					<p className="flex items-center justify-center p-4">No results found</p>
+				) : (
+					<>
+						{recentSearchList.map((route: ISearchItem) => (
+							<SearchItem
+								key={`global-search-recent-${route.name}-${route.route}`}
+								route={route}
+								recent
+								onSelect={() => dialog?.hide()}
+							/>
+						))}
+						{defaultSearchList.map((route: ISearchItem) => (
+							<SearchItem
+								key={`global-search-dl-${route.name}-${route.route}`}
+								route={route}
+								onSelect={() => dialog?.hide()}
+							/>
+						))}
+					</>
+				)}
+			</Ariakit.ComboboxList>
+		</Ariakit.ComboboxProvider>
 	)
 }
 
@@ -268,7 +287,15 @@ const Desktop = () => {
 	)
 }
 
-const SearchItem = ({ route, recent = false }: { route: ISearchItem; recent?: boolean }) => {
+const SearchItem = ({
+	route,
+	recent = false,
+	onSelect
+}: {
+	route: ISearchItem
+	recent?: boolean
+	onSelect?: () => void
+}) => {
 	const router = useRouter()
 	return (
 		<Ariakit.ComboboxItem
@@ -287,6 +314,7 @@ const SearchItem = ({ route, recent = false }: { route: ISearchItem; recent?: bo
 				if (!recent) {
 					setRecentSearch(route)
 				}
+				onSelect?.()
 			}}
 			value={route.route}
 		>
